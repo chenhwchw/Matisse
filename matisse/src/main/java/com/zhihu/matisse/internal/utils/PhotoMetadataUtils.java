@@ -20,6 +20,7 @@ import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.media.ExifInterface;
@@ -31,13 +32,13 @@ import android.util.Log;
 import com.zhihu.matisse.MimeType;
 import com.zhihu.matisse.R;
 import com.zhihu.matisse.filter.Filter;
+import com.zhihu.matisse.internal.entity.IncapableCause;
 import com.zhihu.matisse.internal.entity.Item;
 import com.zhihu.matisse.internal.entity.SelectionSpec;
-import com.zhihu.matisse.internal.entity.IncapableCause;
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.Locale;
@@ -79,16 +80,21 @@ public final class PhotoMetadataUtils {
     }
 
     public static Point getBitmapBound(ContentResolver resolver, Uri uri) {
-        InputStream is = null;
+        FileInputStream is = null;
         try {
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inJustDecodeBounds = true;
-            is = resolver.openInputStream(uri);
-            BitmapFactory.decodeStream(is, null, options);
+            is = new FileInputStream(uri.getPath());
+            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            options.inPreferQualityOverSpeed = false;
+            BitmapFactory.decodeFileDescriptor(is.getFD(), null, options);
             int width = options.outWidth;
             int height = options.outHeight;
             return new Point(width, height);
         } catch (FileNotFoundException e) {
+            return new Point(0, 0);
+        } catch (IOException e) {
+            e.printStackTrace();
             return new Point(0, 0);
         } finally {
             if (is != null) {
